@@ -1,0 +1,175 @@
+{% extends 'Gestiones/base.html' %}
+{% block content %}
+<div class="row">
+    <!-- Columna Izquierda: Listado de Productos (Inventario / Matriz M) -->
+    <div class="col-lg-7 mb-4">
+        <div class="card shadow-sm border-0">
+            <div class="card-header bg-primary text-white">
+                <h5 class="mb-0"><i class="fa-solid fa-boxes-stacked me-2"></i>Inventario de Insumos ($M$)</h5>
+            </div>
+            <div class="card-body">
+                <p class="text-muted small">Selecciona las cantidades deseadas para simular el vector de compra ($V$).</p>
+                {% if error %}
+                <div class="alert alert-danger" role="alert">{{ error }}</div>
+                {% endif %}
+                <form method="GET" class="row g-2 align-items-end mb-3">
+                    <div class="col-md-8">
+                        <label for="mascota" class="form-label fw-bold">Tipo de mascota</label>
+                        <select name="mascota" id="mascota" class="form-select">
+                            <option value="">Todas las mascotas</option>
+                            {% for tipo in tipos_mascota %}
+                            <option value="{{ tipo.id }}" {% if mascota_seleccionada.id == tipo.id %}selected{% endif %}>{{ tipo.nombre }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="col-md-4">
+                        <button type="submit" class="btn btn-outline-primary w-100">Buscar insumos</button>
+                    </div>
+                </form>
+                <form method="POST">
+                    {% csrf_token %}
+                    {% if mascota_seleccionada %}
+                    <input type="hidden" name="mascota" value="{{ mascota_seleccionada.id }}">
+                    <p class="small text-muted">Mostrando insumos para: <strong>{{ mascota_seleccionada.nombre }}</strong></p>
+                    {% endif %}
+                    <div class="row g-3 mb-3">
+                        <div class="col-md-6">
+                            <label for="tipo_despacho" class="form-label fw-bold">Tipo de despacho</label>
+                            <select name="tipo_despacho" id="tipo_despacho" class="form-select" required>
+                                <option value="" {% if not tipo_despacho %}selected{% endif %} disabled>Selecciona una opción...</option>
+                                <option value="retiro" {% if tipo_despacho == 'retiro' %}selected{% endif %}>Retiro en la veterinaria</option>
+                                <option value="domicilio" {% if tipo_despacho == 'domicilio' %}selected{% endif %}>Despacho a domicilio (+$3.500)</option>
+                            </select>
+                        </div>
+                        <div class="col-md-6">
+                            <label for="direccion_despacho" class="form-label fw-bold">Dirección de despacho</label>
+                            <input type="text" name="direccion_despacho" id="direccion_despacho" value="{{ direccion_despacho }}" class="form-control" placeholder="Requerida para despacho a domicilio">
+                            <div class="form-text">Solo es necesaria si eliges despacho a domicilio.</div>
+                        </div>
+                    </div>
+                    <div class="table-responsive">
+                        <table class="table table-hover align-middle">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>Producto</th>
+                                    <th>Categoría</th>
+                                    <th>Precio Unitario</th>
+                                    <th style="width: 120px;">Cantidad ($V$)</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for p in productos %}
+                                <tr>
+                                    <td class="fw-bold">{{ p.nombre }}</td>
+                                    <td><span class="badge bg-secondary">{{ p.categoria }}</span></td>
+                                    <td>${{ p.precio_unitario }}</td>
+                                    <td>
+                                        <input type="number" name="producto_{{ p.id }}" value="0" min="0" class="form-control form-control-sm">
+                                    </td>
+                                </tr>
+                                {% empty %}
+                                <tr>
+                                    <td colspan="4" class="text-center text-muted">No hay productos registrados. Agrégalos desde el panel de administración.</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    <button type="submit" class="btn btn-primary w-100 mt-2">
+                        <i class="fa-solid fa-calculator me-2"></i>Calcular Carrito ($C = V \times M$)
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Columna Derecha: Resultado del Carrito (Matriz C) -->
+    <div class="col-lg-5">
+        <div class="card shadow-sm border-0 bg-white">
+            <div class="card-header bg-dark text-white">
+                <h5 class="mb-0"><i class="fa-solid fa-receipt me-2"></i>Resumen de Compra</h5>
+            </div>
+            <div class="card-body">
+                {% if detalle_compra %}
+                    <ul class="list-group list-group-flush mb-3">
+                        {% for item in detalle_compra %}
+                        <li class="list-group-item d-flex justify-content-between align-items-center px-0">
+                            <div>
+                                <h6 class="mb-0">{{ item.nombre }}</h6>
+                                <small class="text-muted">{{ item.cantidad }} un. x ${{ item.precio }}</small>
+                            </div>
+                            <span class="fw-bold text-success">${{ item.subtotal }}</span>
+                        </li>
+                        {% endfor %}
+                    </ul>
+                    <hr>
+                    <div class="d-flex justify-content-between mb-2">
+                        <span>Subtotal:</span>
+                        <span>${{ subtotal_carrito }}</span>
+                    </div>
+                    {% if descuento_carrito %}
+                    <div class="d-flex justify-content-between mb-2">
+                        <span>Descuento de usuario ({{ porcentaje_descuento }}%):</span>
+                        <span>−${{ descuento_carrito }}</span>
+                    </div>
+                    {% endif %}
+                    {% if tipo_despacho == 'domicilio' %}
+                    <div class="d-flex justify-content-between mb-2">
+                        <span>Despacho a domicilio:</span>
+                        <span>${{ costo_despacho }}</span>
+                    </div>
+                    <p class="small text-muted mb-2">Dirección: {{ direccion_despacho }}</p>
+                    {% else %}
+                    <p class="small text-muted">Retiro en la veterinaria</p>
+                    {% endif %}
+                    <div class="d-flex justify-content-between align-items-center">
+                        <h4 class="fw-bold mb-0">Total:</h4>
+                        <h4 class="fw-bold text-primary mb-0">${{ total_carrito }}</h4>
+                    </div>
+                    <hr>
+                    <section aria-labelledby="titulo-pago">
+                        <h5 id="titulo-pago" class="fw-bold">Formulario de pago</h5>
+                        <p class="small text-muted">Demostración: no se solicitarán datos de tarjeta ni se realizará un cobro.</p>
+                        <form id="formulario-pago">
+                            <div class="mb-3">
+                                <label for="nombre-pagador" class="form-label">Nombre del pagador</label>
+                                <input type="text" id="nombre-pagador" class="form-control" required>
+                            </div>
+                            <div class="mb-3">
+                                <label for="metodo-pago" class="form-label">Método de pago</label>
+                                <select id="metodo-pago" class="form-select" required>
+                                    <option value="" selected disabled>Selecciona un método...</option>
+                                    <option value="debito">Tarjeta de débito </option>
+                                    <option value="credito">Tarjeta de crédito </option>
+                                    <option value="transferencia">Transferencia </option>
+                                    <option value="efectivo">Efectivo en la veterinaria</option>
+                                </select>
+                            </div>
+                            <button type="submit" class="btn btn-success w-100">Confirmar pago de demostración</button>
+                        </form>
+                        <div id="confirmacion-pago" class="alert alert-info mt-3 mb-0" role="status" aria-live="polite" hidden>
+                            Pago de demostración confirmado. No se realizó ningún cobro.
+                        </div>
+                    </section>
+                {% else %}
+                    <div class="text-center py-4 text-muted">
+                        <i class="fa-solid fa-cart-arrow-down fa-2x mb-2"></i>
+                        <p class="mb-0">Aún no hay productos seleccionados en el carrito.</p>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+<script>
+    const formularioPago = document.getElementById('formulario-pago');
+    const confirmacionPago = document.getElementById('confirmacion-pago');
+
+    if (formularioPago && confirmacionPago) {
+        formularioPago.addEventListener('submit', function (event) {
+            event.preventDefault();
+            confirmacionPago.hidden = false;
+        });
+    }
+</script>
+{% endblock %}

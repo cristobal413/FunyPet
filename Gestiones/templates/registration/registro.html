@@ -1,0 +1,27 @@
+{% extends 'Gestiones/base.html' %}
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-7 col-lg-6">
+        <div class="card border-0 shadow-sm">
+            <div class="card-body p-4">
+                <h1 class="h3 fw-bold mb-2">Crear cuenta de cliente</h1>
+                <p class="text-muted">Crea tu usuario y contraseña para obtener un 35% de descuento en insumos.</p>
+                <form method="POST">
+                    {% csrf_token %}
+                    {% for field in form %}
+                    <div class="mb-3">
+                        <label for="{{ field.id_for_label }}" class="form-label">{{ field.label }}</label>
+                        {{ field }}
+                        {% if field.help_text %}<div class="form-text">{{ field.help_text }}</div>{% endif %}
+                        {% for error in field.errors %}<div class="text-danger small">{{ error }}</div>{% endfor %}
+                    </div>
+                    {% endfor %}
+                    {% for error in form.non_field_errors %}<div class="alert alert-danger" role="alert">{{ error }}</div>{% endfor %}
+                    <button type="submit" class="btn btn-primary w-100">Crear cuenta e iniciar sesión</button>
+                </form>
+                <p class="mt-3 mb-0">¿Ya tienes cuenta? <a href="{% url 'login' %}">Inicia sesión</a>.</p>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

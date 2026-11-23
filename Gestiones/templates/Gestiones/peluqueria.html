@@ -1,0 +1,196 @@
+{% extends 'Gestiones/base.html' %}
+{% block content %}
+<style>
+    .grooming-page {
+        --grooming-accent: #ffc107;
+        --grooming-text: hsl(44, 85%, 3%);
+        --grooming-light: #fff5cc;
+        --grooming-cream: #fff9df;
+    }
+    .grooming-intro {
+        background: linear-gradient(145deg, var(--grooming-light), var(--grooming-cream));
+        border-radius: 1.25rem;
+    }
+    .grooming-icon {
+        width: 5rem;
+        height: 5rem;
+        color: var(--grooming-accent);
+        background: #fff;
+        font-size: 2rem;
+    }
+    .grooming-page .text-grooming {
+        color: var(--grooming-text);
+    }
+    .grooming-page .btn-grooming {
+        color: #212529;
+        background-color: var(--grooming-accent);
+        border-color: var(--grooming-accent);
+    }
+    .grooming-page .btn-grooming:hover {
+        color: #212529;
+        background-color: #ffca2c;
+        border-color: #ffc720;
+    }
+</style>
+
+<div class="grooming-page">
+    <div class="row g-4 align-items-stretch">
+        <section class="col-lg-5">
+            <div class="grooming-intro h-100 p-4 p-xl-5 d-flex flex-column justify-content-center">
+                <div class="grooming-icon rounded-circle shadow-sm d-flex align-items-center justify-content-center mb-4">
+                    <i class="fa-solid fa-scissors" aria-hidden="true"></i>
+                </div>
+                <span class="badge rounded-pill text-grooming bg-white align-self-start px-3 py-2 mb-3">Cuidado y estilo</span>
+                <h1 class="display-6 fw-bold text-dark">Un look genial para tu mascota</h1>
+                <p class="text-secondary fs-5 mb-4">
+                    Elige uno o más servicios y dinos cuánto pesa. Te damos una estimación del precio y el tiempo para su sesión de peluquería.
+                </p>
+
+                <h2 class="h6 fw-bold text-dark mb-3">Ajuste según el peso</h2>
+                <div class="d-flex justify-content-between border-bottom border-secondary-subtle py-2">
+                    <span class="text-secondary">Hasta 10 kg</span>
+                    <span class="fw-semibold">Tarifa base</span>
+                </div>
+                <div class="d-flex justify-content-between border-bottom border-secondary-subtle py-2">
+                    <span class="text-secondary">De 10 a 25 kg</span>
+                    <span class="fw-semibold">Ajuste × 1,3</span>
+                </div>
+                <div class="d-flex justify-content-between py-2">
+                    <span class="text-secondary">Más de 25 kg</span>
+                    <span class="fw-semibold">Ajuste × 1,6</span>
+                </div>
+            </div>
+        </section>
+
+        <section class="col-lg-7">
+            <div class="card h-100 border-0 shadow-sm rounded-4">
+                <div class="card-body p-4 p-xl-5">
+                    <div class="mb-4">
+                        <p class="small text-uppercase fw-bold text-grooming mb-2">Cotizador de peluquería</p>
+                        <h2 class="h3 fw-bold mb-2">Prepara su visita</h2>
+                        <p class="text-muted mb-0">Completa los datos para calcular una estimación.</p>
+                    </div>
+
+                    <form method="POST">
+                        {% csrf_token %}
+                        <fieldset class="mb-4">
+                            <legend class="form-label fw-semibold">Servicios <span class="text-muted fw-normal">(puedes elegir varios)</span></legend>
+                            <div class="d-grid gap-2">
+                                {% for servicio in servicios %}
+                                <label class="form-check bg-light rounded-3 p-3 d-flex align-items-start gap-2">
+                                    <input class="form-check-input mt-1" type="checkbox" name="servicios" value="{{ servicio.id }}" {% if servicio.id in selected_servicio_ids %}checked{% endif %}>
+                                    <span>
+                                        <strong>{{ servicio.nombre }}</strong>
+                                        {% if servicio.descripcion %}<span class="d-block text-muted">{{ servicio.descripcion }}</span>{% endif %}
+                                        <span class="d-block small text-secondary">${{ servicio.precio_base }} · {{ servicio.tiempo_base_minutos }} min</span>
+                                    </span>
+                                </label>
+                                {% empty %}
+                                <p class="text-muted mb-0">No hay servicios disponibles por el momento.</p>
+                                {% endfor %}
+                            </div>
+                        </fieldset>
+                        <div class="mb-4">
+                            <label for="peso_peluqueria" class="form-label fw-semibold">Peso de la mascota</label>
+                            <div class="input-group input-group-lg">
+                                <input type="number" min="0.1" step="0.1" name="peso_peluqueria" id="peso_peluqueria" class="form-control" placeholder="Ej. 12.5" required>
+                                <span class="input-group-text">kg</span>
+                            </div>
+                        </div>
+                        <button type="submit" name="accion" value="calcular" class="btn btn-grooming btn-lg w-100">
+                            <i class="fa-solid fa-calculator me-2" aria-hidden="true"></i>Ver estimación
+                        </button>
+                    </form>
+
+                    {% if error %}
+                    <div class="alert alert-danger mt-4 mb-0" role="alert">{{ error }}</div>
+                    {% endif %}
+
+                    {% if estimacion %}
+                    <div class="mt-4 p-4 rounded-4" style="background-color: var(--grooming-light);">
+                        <div class="d-flex align-items-center gap-2 mb-3">
+                            <i class="fa-solid fa-circle-check text-grooming" aria-hidden="true"></i>
+                            <h3 class="h5 fw-bold mb-0">Estimación lista</h3>
+                        </div>
+                        <p class="mb-2">Servicios para una mascota de {{ estimacion.peso }} kg:</p>
+                        <ul class="mb-3">
+                            {% for servicio in estimacion.servicios %}
+                            <li>
+                                <strong>{{ servicio.nombre }}</strong> — ${{ servicio.precio_final }}, {{ servicio.tiempo_final }} min
+                                {% if servicio.descripcion %}<span class="d-block text-secondary">{{ servicio.descripcion }}</span>{% endif %}
+                            </li>
+                            {% endfor %}
+                        </ul>
+                        <div class="row g-3">
+                            <div class="col-sm-6">
+                                <div class="bg-white rounded-3 p-3 h-100">
+                                    <p class="small text-muted mb-1">Precio total estimado</p>
+                                    <p class="h4 text-grooming fw-bold mb-0">${{ estimacion.precio_final }}</p>
+                                </div>
+                            </div>
+                            <div class="col-sm-6">
+                                <div class="bg-white rounded-3 p-3 h-100">
+                                    <p class="small text-muted mb-1">Duración total aproximada</p>
+                                    <p class="h4 text-grooming fw-bold mb-0">{{ estimacion.tiempo_final }} min</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    {% if cita_guardada %}
+                    <div class="alert alert-success mt-4 mb-0" role="status">
+                        La cita de peluquería se guardó correctamente.
+                    </div>
+                    {% else %}
+                    <div class="mt-4 p-4 rounded-4 border">
+                        <h3 class="h5 fw-bold mb-3">Guardar una cita</h3>
+                        <p class="text-muted">Completa los datos de contacto y el horario para reservar estos servicios.</p>
+                        <form method="POST">
+                            {% csrf_token %}
+                            <input type="hidden" name="accion" value="guardar_cita">
+                            <input type="hidden" name="peso_peluqueria" value="{{ estimacion.peso }}">
+                            {% for servicio_id in selected_servicio_ids %}
+                            <input type="hidden" name="servicios" value="{{ servicio_id }}">
+                            {% endfor %}
+                            <div class="row g-3">
+                                <div class="col-md-6">
+                                    <label for="{{ form_cita.nombre_dueno.id_for_label }}" class="form-label">Nombre del dueño</label>
+                                    {{ form_cita.nombre_dueno }}
+                                    {% for error in form_cita.nombre_dueno.errors %}<div class="text-danger small">{{ error }}</div>{% endfor %}
+                                </div>
+                                <div class="col-md-6">
+                                    <label for="{{ form_cita.nombre_mascota.id_for_label }}" class="form-label">Nombre de la mascota</label>
+                                    {{ form_cita.nombre_mascota }}
+                                    {% for error in form_cita.nombre_mascota.errors %}<div class="text-danger small">{{ error }}</div>{% endfor %}
+                                </div>
+                                <div class="col-md-6">
+                                    <label for="{{ form_cita.telefono.id_for_label }}" class="form-label">Teléfono de contacto</label>
+                                    {{ form_cita.telefono }}
+                                    {% for error in form_cita.telefono.errors %}<div class="text-danger small">{{ error }}</div>{% endfor %}
+                                </div>
+                                <div class="col-md-6">
+                                    <label for="{{ form_cita.correo_electronico.id_for_label }}" class="form-label">Correo electrónico</label>
+                                    {{ form_cita.correo_electronico }}
+                                    {% for error in form_cita.correo_electronico.errors %}<div class="text-danger small">{{ error }}</div>{% endfor %}
+                                </div>
+                                <div class="col-md-6">
+                                    <label for="{{ form_cita.fecha.id_for_label }}" class="form-label">Fecha</label>
+                                    {{ form_cita.fecha }}
+                                    {% for error in form_cita.fecha.errors %}<div class="text-danger small">{{ error }}</div>{% endfor %}
+                                </div>
+                                <div class="col-md-6">
+                                    <label for="{{ form_cita.hora.id_for_label }}" class="form-label">Hora</label>
+                                    {{ form_cita.hora }}
+                                    {% for error in form_cita.hora.errors %}<div class="text-danger small">{{ error }}</div>{% endfor %}
+                                </div>
+                            </div>
+                            <button type="submit" class="btn btn-grooming w-100 mt-4">Guardar cita</button>
+                        </form>
+                    </div>
+                    {% endif %}
+                    {% endif %}
+                </div>
+            </div>
+        </section>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,61 @@
+{% extends 'Gestiones/base.html' %}
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-lg-8">
+        <div class="card shadow-sm border-0">
+            <div class="card-header bg-success text-white">
+                <h5 class="mb-0"><i class="fa-solid fa-prescription-bottle-medical me-2"></i>Cotizador de Medicamentos</h5>
+            </div>
+            <div class="card-body p-4">
+                <p class="text-muted">Ingresa el volumen indicado por el veterinario. El costo se calcula proporcionalmente al contenido y precio del envase.</p>
+                
+                <form method="POST" class="row g-3 mt-2">
+                    {% csrf_token %}
+                    {% if error %}
+                    <div class="col-12">
+                        <div class="alert alert-danger mb-0" role="alert">{{ error }}</div>
+                    </div>
+                    {% endif %}
+                    <div class="col-md-6">
+                        <label for="medicamento" class="form-label fw-bold">Seleccionar medicamento</label>
+                        <select name="medicamento" id="medicamento" class="form-select" required>
+                            <option value="" selected disabled>Elija un medicamento...</option>
+                            {% for m in medicamentos %}
+                            <option value="{{ m.id }}">{{ m.nombre }} ({{ m.volumen_ml }} ml, ${{ m.precio }})</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="col-md-6">
+                        <label for="dosis_ml" class="form-label fw-bold">Cantidad indicada (ml)</label>
+                        <input type="number" min="0.01" step="0.01" name="dosis_ml" id="dosis_ml" class="form-control" placeholder="Ej. 2.5" required>
+                    </div>
+                    <div class="col-12 mt-4">
+                        <button type="submit" class="btn btn-success w-100">
+                            <i class="fa-solid fa-calculator me-2"></i>Calcular costo
+                        </button>
+                    </div>
+                </form>
+
+                {% if resultado %}
+                <div class="alert alert-success mt-4 border-0 shadow-sm">
+                    <h5 class="alert-heading fw-bold"><i class="fa-solid fa-circle-check me-2"></i>Resultado de cotización</h5>
+                    <hr>
+                    <p class="mb-1"><strong>Medicamento:</strong> {{ resultado.nombre }}</p>
+                    <p class="mb-1"><strong>Cantidad indicada:</strong> {{ resultado.dosis_ml }} ml</p>
+                    <p class="mb-1"><strong>Contenido del envase:</strong> {{ resultado.volumen_ml }} ml</p>
+                    <p class="mb-1"><strong>Precio del envase:</strong> ${{ resultado.precio_envase }}</p>
+                    <p class="mb-1"><strong>Precio por ml:</strong> ${{ resultado.precio_ml }}</p>
+                    <hr>
+                    <h4 class="text-success fw-bold mb-0">Costo Total: ${{ resultado.costo_total }}</h4>
+                </div>
+                {% endif %}
+                {% if not medicamentos %}
+                <div class="alert alert-info mt-4 mb-0" role="status">
+                    No hay medicamentos con contenido y precio registrados.
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
